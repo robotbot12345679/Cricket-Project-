@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import Modal from '@/components/Modal';
+import Navbar from '@/components/Navbar';
 
 import { Suspense } from 'react';
 
@@ -32,6 +34,15 @@ function RecordMatchConsole() {
   // Loading/saving states
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'info', onConfirm: null, onCancel: null, confirmText: 'OK', cancelText: null });
+
+  const showModal = (title, message, type = 'info', onConfirm = null, onCancel = null, confirmText = 'OK', cancelText = null) => {
+    setModalConfig({ isOpen: true, title, message, type, onConfirm, onCancel, confirmText, cancelText });
+  };
+
+  const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
 
   // Fetch initial data
   useEffect(() => {
@@ -126,7 +137,10 @@ function RecordMatchConsole() {
   };
 
   const startMatch = async () => {
-    if (!tossWinnerId) return alert('Select toss winner');
+    if (!tossWinnerId) {
+      showModal('Missing Selection', 'Please select a toss winner.', 'danger', closeModal);
+      return;
+    }
     setSaving(true);
 
     const team1Id = activeMatch.team1_id;
@@ -148,7 +162,7 @@ function RecordMatchConsole() {
       .single();
 
     if (matchErr) {
-      alert(matchErr.message);
+      showModal('Error', matchErr.message, 'danger', closeModal);
       setSaving(false);
       return;
     }
@@ -169,7 +183,7 @@ function RecordMatchConsole() {
       .single();
 
     if (innErr) {
-      alert(innErr.message);
+      showModal('Error', innErr.message, 'danger', closeModal);
       setSaving(false);
       return;
     }
@@ -301,7 +315,7 @@ function RecordMatchConsole() {
       }
 
     } catch (e) {
-      alert(e.message);
+      showModal('Error', e.message, 'danger', closeModal);
     } finally {
       setSaving(false);
     }
@@ -310,9 +324,21 @@ function RecordMatchConsole() {
   const undoLastBall = async () => {
     if (!activeInnings || saving) return;
 
-    const confirmUndo = confirm('Are you sure you want to undo the last delivery?');
-    if (!confirmUndo) return;
+    showModal(
+      'Undo Last Delivery',
+      'Are you sure you want to undo the last delivery?',
+      'danger',
+      async () => {
+        closeModal();
+        await executeUndo();
+      },
+      closeModal,
+      'Yes, Undo',
+      'Cancel'
+    );
+  };
 
+  const executeUndo = async () => {
     setSaving(true);
     try {
       // Find latest ball
@@ -324,7 +350,7 @@ function RecordMatchConsole() {
         .limit(1);
 
       if (!lastBalls || lastBalls.length === 0) {
-        alert('No deliveries to undo.');
+        showModal('Info', 'No deliveries to undo.', 'info', closeModal);
         setSaving(false);
         return;
       }
@@ -380,7 +406,7 @@ function RecordMatchConsole() {
       }
 
     } catch (e) {
-      alert(e.message);
+      showModal('Error', e.message, 'danger', closeModal);
     } finally {
       setSaving(false);
     }
@@ -413,7 +439,7 @@ function RecordMatchConsole() {
       .single();
 
     if (innErr) {
-      alert(innErr.message);
+      showModal('Error', innErr.message, 'danger', closeModal);
       return;
     }
 
@@ -429,15 +455,15 @@ function RecordMatchConsole() {
 
     if (runs2 > runs1) {
       winnerId = inn2.batting_team_id;
-      const wicketsLeft = activeMatch.wickets - inn2.total_wickets;
-      resultDesc = `${teams[winnerId]?.name} won by ${wicketsLeft} wickets`;
+      const wicketsLeft = (inn2.is_super_over ? 1 : activeMatch.wickets) - inn2.total_wickets;
+      resultDesc = `${teams[winnerId]?.name} won by ${wicketsLeft} wickets ${inn2.is_super_over ? '(Super Over)' : ''}`;
     } else if (runs1 > runs2) {
       winnerId = inn1Stats.batting_team_id;
       const runsMargin = runs1 - runs2;
-      resultDesc = `${teams[winnerId]?.name} won by ${runsMargin} runs`;
+      resultDesc = `${teams[winnerId]?.name} won by ${runsMargin} runs ${inn2.is_super_over ? '(Super Over)' : ''}`;
     } else {
       // TIE -> trigger super over
-      resultDesc = 'Match Tied (Super Over TBD)';
+      resultDesc = 'Match Tied (Super Over Pending)';
     }
 
     const { data: updatedMatch, error: matchErr } = await supabase
@@ -446,7 +472,7 @@ function RecordMatchConsole() {
         winner_id: winnerId,
         result_description: resultDesc,
         status: winnerId ? 'completed' : 'live', // live if super over needed
-        has_super_over: !winnerId
+        has_super_over: !winnerId || inn2.is_super_over
       })
       .eq('id', activeMatch.id)
       .select()
@@ -454,20 +480,74 @@ function RecordMatchConsole() {
 
     if (matchErr) throw matchErr;
 
-    // Refresh UI
-    alert(resultDesc);
-    router.push(`/tournament/${selectedTournamentId}`);
-    router.refresh();
+    if (!winnerId && !inn2.is_super_over) {
+      // Start Super Over logic
+      showModal(
+        'Match Tied!', 
+        'The match is tied! Starting Super Over.',
+        'info',
+        async () => {
+          closeModal();
+          await startSuperOver();
+        }
+      );
+    } else {
+      showModal('Match Completed', resultDesc, 'success', () => {
+        closeModal();
+        router.push(`/tournament/${selectedTournamentId}`);
+        router.refresh();
+      });
+    }
+  };
+
+  const startSuperOver = async () => {
+    // Super Over 1st Innings
+    // Team batting 2nd in normal match bats 1st in super over
+    const battingTeamId = inn2Stats.batting_team_id;
+
+    const { data: soInn1, error: innErr } = await supabase
+      .from('innings')
+      .insert({
+        match_id: activeMatch.id,
+        innings_number: 1,
+        batting_team_id: battingTeamId,
+        total_runs: 0,
+        total_wickets: 0,
+        overs_completed: 0.0,
+        is_complete: false,
+        is_super_over: true
+      })
+      .select()
+      .single();
+
+    if (innErr) {
+      showModal('Error', innErr.message, 'danger', closeModal);
+      return;
+    }
+
+    setInn1Stats(soInn1);
+    setActiveInnings(soInn1);
+    setCurrentOverBalls([]);
   };
 
   return (
     <div className="page-wrapper flex flex-col h-screen overflow-hidden">
+      <Navbar />
+
+      <Modal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onConfirm={modalConfig.onConfirm || closeModal}
+        onCancel={modalConfig.onCancel}
+        confirmText={modalConfig.confirmText}
+        cancelText={modalConfig.cancelText}
+      />
+
       {/* Header */}
-      <header className="navbar flex-shrink-0">
-        <Link href="/" className="navbar-brand">
-          <div className="navbar-brand-icon">🏏</div>
-          <span className="navbar-brand-name">CricManager — Live Scorer</span>
-        </Link>
+      <header className="flex-shrink-0" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 className="font-bold" style={{ fontSize: '1.2rem' }}>Live Score Record</h2>
         <div>
           <select
             className="form-input"
@@ -646,7 +726,9 @@ function RecordMatchConsole() {
             </div>
           ) : (
             <div className="empty-state">
-              <span className="empty-state-icon">🏏</span>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="mb-16" style={{ color: 'var(--accent-primary)' }}>
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
               <p className="empty-state-title">Select a Match to Record Score</p>
               <p className="empty-state-desc">Choose a tournament from the dropdown and select a scheduled match from the left panel.</p>
             </div>

@@ -5,214 +5,228 @@ import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [message, setMessage] = useState(null); // { text, type: 'error'|'success' }
 
-  async function handleLogin(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
-    setError('');
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setError(error.message);
+    setMessage(null);
+
+    if (!email || !password) {
+      setMessage({ text: 'Please enter both email and password.', type: 'error' });
       setLoading(false);
+      return;
+    }
+
+    if (mode === 'signin') {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setMessage({ text: error.message, type: 'error' });
+        setLoading(false);
+      } else {
+        document.cookie = `sb-auth-token=${data.session.access_token}; path=/; max-age=604800; SameSite=Lax`;
+        router.push('/');
+        router.refresh();
+      }
     } else {
-      // Set simple cookie for middleware check
-      document.cookie = `sb-auth-token=${data.session.access_token}; path=/; max-age=604800; SameSite=Lax`;
-      router.push('/');
-      router.refresh();
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        setMessage({ text: error.message, type: 'error' });
+        setLoading(false);
+      } else if (data?.session) {
+        document.cookie = `sb-auth-token=${data.session.access_token}; path=/; max-age=604800; SameSite=Lax`;
+        router.push('/');
+        router.refresh();
+      } else {
+        setMessage({ text: 'Account created! Check your email for the confirmation link.', type: 'success' });
+        setLoading(false);
+      }
     }
   }
 
   return (
-    <div className="login-page">
-      <div className="login-bg-orb login-bg-orb-1" />
-      <div className="login-bg-orb login-bg-orb-2" />
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#0c0f1e',
+      padding: '24px',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Background blobs */}
+      <div style={{
+        position: 'fixed', top: '-200px', right: '-150px',
+        width: '600px', height: '600px', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(79,122,248,0.1) 0%, transparent 65%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'fixed', bottom: '-150px', left: '-100px',
+        width: '500px', height: '500px', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(124,92,252,0.08) 0%, transparent 65%)',
+        pointerEvents: 'none',
+      }} />
 
-      <div className="login-container animate-fade-in">
-        {/* Brand */}
-        <div className="login-brand">
-          <div className="login-brand-icon">🏏</div>
-          <h1 className="login-brand-name">CricManager</h1>
-          <p className="login-brand-sub">Your personal cricket tournament manager</p>
+      <div style={{ width: '100%', maxWidth: '400px', position: 'relative', zIndex: 1 }} className="animate-fade-in">
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+          <div style={{
+            width: '58px', height: '58px', margin: '0 auto 14px',
+            background: 'linear-gradient(135deg, #4f7af8, #7c5cfc)',
+            borderRadius: '16px', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', boxShadow: '0 8px 28px rgba(79,122,248,0.4)',
+            animation: 'pulse-glow 3s ease-in-out infinite',
+          }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 17l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <h1 style={{ fontSize: '1.75rem', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, color: '#eef2ff' }}>
+            CricManager
+          </h1>
+          <p style={{ color: '#4b5680', fontSize: '0.9rem', marginTop: '4px' }}>
+            Your cricket tournament platform
+          </p>
         </div>
 
         {/* Card */}
-        <div className="login-card">
-          <h2 className="login-title">Welcome back</h2>
-          <p className="login-subtitle">Sign in to manage your tournaments</p>
+        <div style={{
+          background: '#161b2e', border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: '20px', padding: '32px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+        }}>
+          {/* Tabs */}
+          <div style={{
+            display: 'flex', background: '#1c2238', borderRadius: '12px',
+            padding: '4px', marginBottom: '28px', gap: '4px',
+          }}>
+            {['signin', 'signup'].map(m => (
+              <button
+                key={m}
+                onClick={() => { setMode(m); setMessage(null); }}
+                style={{
+                  flex: 1, padding: '9px', border: 'none', cursor: 'pointer',
+                  borderRadius: '9px', fontWeight: 600, fontSize: '0.9rem',
+                  fontFamily: "'Inter', sans-serif",
+                  background: mode === m ? 'linear-gradient(135deg, #4f7af8, #7c5cfc)' : 'transparent',
+                  color: mode === m ? 'white' : '#4b5680',
+                  transition: 'all 0.2s ease',
+                  boxShadow: mode === m ? '0 2px 10px rgba(79,122,248,0.4)' : 'none',
+                }}
+              >
+                {m === 'signin' ? 'Sign In' : 'Sign Up'}
+              </button>
+            ))}
+          </div>
 
-          <form onSubmit={handleLogin} className="login-form">
-            <div className="form-group">
-              <label className="form-label" htmlFor="email">Email address</label>
-              <input
-                id="email"
-                type="email"
-                className="form-input form-input-lg"
-                placeholder="you@example.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="password">Password</label>
-              <input
-                id="password"
-                type="password"
-                className="form-input form-input-lg"
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-              />
-            </div>
-
-            {error && (
-              <div className="login-error">
-                <span>⚠</span> {error}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {/* Message */}
+            {message && (
+              <div style={{
+                padding: '12px 16px', borderRadius: '10px', fontSize: '0.875rem',
+                background: message.type === 'error' ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                color: message.type === 'error' ? '#ef4444' : '#22c55e',
+                border: `1px solid ${message.type === 'error' ? 'rgba(239,68,68,0.25)' : 'rgba(34,197,94,0.25)'}`,
+              }}>
+                {message.text}
               </div>
             )}
 
+            {/* Email */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.83rem', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.02em' }}>
+                EMAIL ADDRESS
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                autoComplete="email"
+                style={{
+                  background: '#1c2238', border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: '12px', padding: '13px 16px', fontSize: '0.95rem',
+                  color: '#eef2ff', fontFamily: "'Inter', sans-serif", outline: 'none',
+                  width: '100%', transition: 'border-color 0.2s ease',
+                }}
+                onFocus={e => { e.target.style.borderColor = '#4f7af8'; e.target.style.boxShadow = '0 0 0 3px rgba(79,122,248,0.15)'; }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.07)'; e.target.style.boxShadow = 'none'; }}
+              />
+            </div>
+
+            {/* Password */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.83rem', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.02em' }}>
+                PASSWORD
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                style={{
+                  background: '#1c2238', border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: '12px', padding: '13px 16px', fontSize: '0.95rem',
+                  color: '#eef2ff', fontFamily: "'Inter', sans-serif", outline: 'none',
+                  width: '100%', transition: 'border-color 0.2s ease',
+                }}
+                onFocus={e => { e.target.style.borderColor = '#4f7af8'; e.target.style.boxShadow = '0 0 0 3px rgba(79,122,248,0.15)'; }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.07)'; e.target.style.boxShadow = 'none'; }}
+              />
+            </div>
+
+            {/* Submit Button */}
             <button
-              id="login-btn"
               type="submit"
-              className="btn btn-primary btn-lg w-full"
               disabled={loading}
+              style={{
+                background: 'linear-gradient(135deg, #4f7af8, #7c5cfc)',
+                color: 'white', border: 'none', borderRadius: '12px',
+                padding: '14px', fontWeight: 700, fontSize: '1rem',
+                fontFamily: "'Inter', sans-serif", cursor: loading ? 'not-allowed' : 'pointer',
+                width: '100%', marginTop: '6px',
+                boxShadow: '0 4px 16px rgba(79,122,248,0.4)',
+                opacity: loading ? 0.7 : 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                transition: 'opacity 0.2s, transform 0.2s',
+              }}
+              onMouseOver={e => { if (!loading) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
             >
-              {loading ? <><span className="spinner" /> Signing in…</> : 'Sign In'}
+              {loading ? (
+                <>
+                  <span style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                  Processing…
+                </>
+              ) : mode === 'signin' ? 'Sign In' : 'Create Account'}
             </button>
           </form>
         </div>
-
-        <p className="login-footer-note">Personal use only — contact admin for access</p>
       </div>
 
-      <style jsx>{`
-        .login-page {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: var(--bg-primary);
-          position: relative;
-          overflow: hidden;
-          padding: 24px;
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 8px 28px rgba(79,122,248,0.4); }
+          50% { box-shadow: 0 8px 40px rgba(79,122,248,0.7); }
         }
-
-        .login-bg-orb {
-          position: fixed;
-          border-radius: 50%;
-          pointer-events: none;
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-
-        .login-bg-orb-1 {
-          width: 700px;
-          height: 700px;
-          top: -200px;
-          right: -200px;
-          background: radial-gradient(circle, rgba(61,114,245,0.12) 0%, transparent 65%);
-        }
-
-        .login-bg-orb-2 {
-          width: 500px;
-          height: 500px;
-          bottom: -150px;
-          left: -100px;
-          background: radial-gradient(circle, rgba(108,79,255,0.1) 0%, transparent 65%);
-        }
-
-        .login-container {
-          width: 100%;
-          max-width: 420px;
-          position: relative;
-          z-index: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 32px;
-        }
-
-        .login-brand {
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .login-brand-icon {
-          width: 68px;
-          height: 68px;
-          background: var(--gradient-primary);
-          border-radius: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 36px;
-          box-shadow: 0 8px 32px rgba(61,114,245,0.35);
-          animation: pulse-glow 3s ease-in-out infinite;
-        }
-
-        .login-brand-name {
-          font-size: 2rem;
-          background: var(--gradient-primary);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .login-brand-sub {
-          color: var(--text-muted);
-          font-size: 0.9rem;
-        }
-
-        .login-card {
-          background: var(--bg-card);
-          border: 1px solid var(--border-subtle);
-          border-radius: var(--radius-xl);
-          padding: 36px 32px;
-          box-shadow: var(--shadow-card);
-        }
-
-        .login-title {
-          font-size: 1.5rem;
-          margin-bottom: 4px;
-        }
-
-        .login-subtitle {
-          color: var(--text-muted);
-          font-size: 0.9rem;
-          margin-bottom: 28px;
-        }
-
-        .login-form {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .login-error {
-          background: rgba(239,68,68,0.1);
-          border: 1px solid rgba(239,68,68,0.3);
-          border-radius: var(--radius-sm);
-          padding: 10px 14px;
-          color: var(--accent-red);
-          font-size: 0.875rem;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .login-footer-note {
-          text-align: center;
-          color: var(--text-muted);
-          font-size: 0.8rem;
-        }
+        .animate-fade-in { animation: fadeIn 0.35s ease both; }
+        input::placeholder { color: #4b5680 !important; }
       `}</style>
     </div>
   );

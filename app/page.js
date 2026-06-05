@@ -5,330 +5,183 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
 
-function statusLabel(status) {
-  if (status === 'setup') return { label: 'Setup', cls: 'badge-yellow' };
-  if (status === 'league') return { label: 'League Stage', cls: 'badge-blue' };
-  if (status === 'playoffs') return { label: 'Playoffs', cls: 'badge-purple' };
-  if (status === 'completed') return { label: 'Completed', cls: 'badge-green' };
-  return { label: status, cls: 'badge-gray' };
+function statusBadge(status) {
+  if (status === 'setup') return { label: 'Setup', bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.25)' };
+  if (status === 'league') return { label: 'Live', bg: 'rgba(34,197,94,0.12)', color: '#22c55e', border: 'rgba(34,197,94,0.25)' };
+  if (status === 'playoffs') return { label: 'Playoffs', bg: 'rgba(124,92,252,0.12)', color: '#7c5cfc', border: 'rgba(124,92,252,0.25)' };
+  if (status === 'completed') return { label: 'Done', bg: 'rgba(100,116,139,0.12)', color: '#94a3b8', border: 'rgba(100,116,139,0.25)' };
+  return { label: status, bg: 'rgba(100,116,139,0.12)', color: '#94a3b8', border: 'rgba(100,116,139,0.25)' };
 }
 
-function TournamentCard({ tournament }) {
-  const { label, cls } = statusLabel(tournament.status);
+function TournamentCard({ t }) {
+  const s = statusBadge(t.status);
+  const date = new Date(t.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
   return (
-    <Link href={`/tournament/${tournament.id}`} className="t-card" id={`tournament-${tournament.id}`}>
-      <div className="t-card-bg-gradient" />
-      <div className="t-card-content">
-        <div className="t-card-top">
-          <span className={`badge ${cls}`}>{label}</span>
-          <span className="t-card-date">
-            {new Date(tournament.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+    <Link href={`/tournament/${t.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+      <div style={{
+        background: '#161b2e',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: '16px',
+        padding: '20px',
+        cursor: 'pointer',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
+        display: 'flex', flexDirection: 'column', gap: '14px',
+      }}
+        onMouseOver={e => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.4)';
+          e.currentTarget.style.borderColor = 'rgba(79,122,248,0.2)';
+        }}
+        onMouseOut={e => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = 'none';
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)';
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '1.05rem', color: '#eef2ff', marginBottom: '4px' }}>
+              {t.name}
+            </h3>
+            <p style={{ fontSize: '0.8rem', color: '#4b5680' }}>{date}</p>
+          </div>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', padding: '4px 10px',
+            borderRadius: '100px', fontSize: '0.72rem', fontWeight: 700,
+            letterSpacing: '0.05em', textTransform: 'uppercase',
+            background: s.bg, color: s.color, border: `1px solid ${s.border}`,
+            flexShrink: 0,
+          }}>
+            {s.label}
           </span>
         </div>
-        <div className="t-card-main">
-          <h3 className="t-card-name">{tournament.name}</h3>
-          <div className="t-card-details">
-            <div className="t-card-stat">
-              <span className="t-card-stat-value">{tournament.team_count || 0}</span>
-              <span className="t-card-stat-label">Teams</span>
-            </div>
-            <div className="t-card-stat-divider" />
-            <div className="t-card-stat">
-              <span className="t-card-stat-value">{tournament.overs_league}</span>
-              <span className="t-card-stat-label">Overs</span>
-            </div>
+
+        {/* Divider */}
+        <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)' }} />
+
+        {/* Stats */}
+        <div style={{ display: 'flex', gap: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4b5680', fontSize: '0.82rem' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
+              <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <span>{t.team_count || 0} teams</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4b5680', fontSize: '0.82rem' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+              <polyline points="12 6 12 12 16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <span>{t.overs_league || '?'} overs</span>
           </div>
         </div>
-        <div className="t-card-footer">
-          <span className="t-card-action">View Tournament</span>
-          <svg className="t-card-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h14M12 5l7 7-7 7" />
-          </svg>
-        </div>
       </div>
-      <style jsx>{`
-        .t-card {
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          background: var(--bg-card);
-          border: 1px solid var(--border-subtle);
-          border-radius: var(--radius-lg);
-          text-decoration: none;
-          color: inherit;
-          transition: var(--transition);
-          cursor: pointer;
-          overflow: hidden;
-          min-height: 220px;
-        }
-        .t-card-bg-gradient {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, rgba(61,114,245,0.05) 0%, rgba(108,79,255,0.02) 100%);
-          opacity: 0;
-          transition: var(--transition);
-        }
-        .t-card:hover {
-          border-color: var(--border-primary);
-          transform: translateY(-4px);
-          box-shadow: var(--shadow-card), var(--shadow-glow);
-        }
-        .t-card:hover .t-card-bg-gradient {
-          opacity: 1;
-        }
-        .t-card-content {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          padding: 24px;
-        }
-        .t-card-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-        }
-        .t-card-date {
-          font-size: 0.75rem;
-          color: var(--text-muted);
-          font-weight: 500;
-        }
-        .t-card-main {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          margin-bottom: 24px;
-        }
-        .t-card-name {
-          font-size: 1.25rem;
-          font-weight: 700;
-          margin-bottom: 16px;
-          line-height: 1.3;
-          color: var(--text-primary);
-        }
-        .t-card-details {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          background: var(--bg-secondary);
-          padding: 12px 16px;
-          border-radius: var(--radius-sm);
-        }
-        .t-card-stat {
-          display: flex;
-          flex-direction: column;
-        }
-        .t-card-stat-value {
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: var(--text-primary);
-          line-height: 1;
-          margin-bottom: 4px;
-        }
-        .t-card-stat-label {
-          font-size: 0.75rem;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          font-weight: 600;
-        }
-        .t-card-stat-divider {
-          width: 1px;
-          height: 24px;
-          background: var(--border-subtle);
-        }
-        .t-card-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-top: 1px solid var(--border-subtle);
-          padding-top: 16px;
-          margin-top: auto;
-        }
-        .t-card-action {
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: var(--accent-primary);
-        }
-        .t-card-arrow {
-          color: var(--accent-primary);
-          transition: transform 0.3s ease;
-        }
-        .t-card:hover .t-card-arrow {
-          transform: translateX(4px);
-        }
-      `}</style>
-    </Link>
-  );
-}
-
-function CreateCard() {
-  return (
-    <Link href="/tournament/create" className="create-card" id="create-tournament-btn">
-      <div className="create-card-content">
-        <div className="create-card-icon-wrapper">
-          <svg className="create-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-        </div>
-        <div className="create-card-text">
-          <h3 className="create-card-title">Add Tournament</h3>
-          <p className="create-card-subtitle">Create a new cricket tournament</p>
-        </div>
-      </div>
-      <style jsx>{`
-        .create-card {
-          display: flex;
-          flex-direction: column;
-          background: var(--gradient-primary);
-          border-radius: var(--radius-lg);
-          text-decoration: none;
-          color: white;
-          transition: var(--transition);
-          cursor: pointer;
-          min-height: 220px;
-          position: relative;
-          overflow: hidden;
-          box-shadow: 0 10px 30px rgba(61, 114, 245, 0.3);
-        }
-        .create-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
-          pointer-events: none;
-        }
-        .create-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 15px 40px rgba(61, 114, 245, 0.4);
-        }
-        .create-card-content {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          height: 100%;
-          padding: 32px;
-          text-align: center;
-          position: relative;
-          z-index: 1;
-        }
-        .create-card-icon-wrapper {
-          width: 64px;
-          height: 64px;
-          background: rgba(255, 255, 255, 0.2);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 20px;
-          backdrop-filter: blur(10px);
-          transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .create-card:hover .create-card-icon-wrapper {
-          transform: scale(1.1) rotate(90deg);
-        }
-        .create-card-icon {
-          width: 32px;
-          height: 32px;
-          color: white;
-        }
-        .create-card-title {
-          font-size: 1.25rem;
-          font-weight: 700;
-          margin-bottom: 8px;
-          letter-spacing: 0.02em;
-        }
-        .create-card-subtitle {
-          font-size: 0.875rem;
-          opacity: 0.8;
-          font-weight: 500;
-        }
-      `}</style>
     </Link>
   );
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) { router.push('/login'); return; }
+      setUser(user);
+
       const { data } = await supabase
         .from('tournaments')
         .select('*, teams(count)')
         .eq('created_by', user.id)
         .order('created_at', { ascending: false });
 
-      const withCount = (data || []).map(t => ({
-        ...t,
-        team_count: t.teams?.[0]?.count || 0,
-      }));
-      setTournaments(withCount);
+      setTournaments((data || []).map(t => ({ ...t, team_count: t.teams?.[0]?.count || 0 })));
       setLoading(false);
     }
     load();
   }, []);
 
-  return (
-    <div className="page-wrapper">
-      <Navbar />
-      <main className="home-main container" style={{ position: 'relative', zIndex: 1 }}>
-        <header className="home-header animate-fade-in">
-          <div>
-            <h1 className="home-title">My Tournaments</h1>
-            <p className="home-subtitle">Create, manage and score your cricket tournaments</p>
-          </div>
-        </header>
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0c0f1e' }}>
+        <div style={{ width: '40px', height: '40px', border: '3px solid rgba(79,122,248,0.2)', borderTopColor: '#4f7af8', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
-        {loading ? (
-          <div className="flex items-center justify-center" style={{ minHeight: 300 }}>
-            <div className="spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
+  return (
+    <div style={{ minHeight: '100vh', background: '#0c0f1e' }}>
+      <Navbar />
+
+      <main style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 20px' }}>
+        {/* Page Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: '2rem', color: '#eef2ff' }}>
+              My Tournaments
+            </h1>
+            <p style={{ color: '#4b5680', marginTop: '4px', fontSize: '0.9rem' }}>
+              {tournaments.length} tournament{tournaments.length !== 1 ? 's' : ''} total
+            </p>
+          </div>
+          <Link href="/tournament/create" style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            padding: '11px 20px', borderRadius: '12px',
+            background: 'linear-gradient(135deg, #4f7af8, #7c5cfc)',
+            color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: '0.9rem',
+            boxShadow: '0 4px 14px rgba(79,122,248,0.4)',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+              <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+            </svg>
+            New Tournament
+          </Link>
+        </div>
+
+        {/* Tournament Grid */}
+        {tournaments.length === 0 ? (
+          <div style={{
+            background: '#161b2e', border: '1px dashed rgba(255,255,255,0.1)',
+            borderRadius: '20px', padding: '64px 24px', textAlign: 'center',
+          }}>
+            <div style={{
+              width: '64px', height: '64px', margin: '0 auto 20px',
+              background: 'rgba(79,122,248,0.1)', borderRadius: '16px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#4f7af8" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#4f7af8" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <h3 style={{ color: '#eef2ff', fontFamily: "'Space Grotesk', sans-serif", marginBottom: '8px' }}>No tournaments yet</h3>
+            <p style={{ color: '#4b5680', fontSize: '0.9rem', marginBottom: '24px' }}>Create your first cricket tournament to get started.</p>
+            <Link href="/tournament/create" style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              padding: '12px 24px', borderRadius: '12px',
+              background: 'linear-gradient(135deg, #4f7af8, #7c5cfc)',
+              color: 'white', textDecoration: 'none', fontWeight: 700,
+            }}>
+              Create Tournament
+            </Link>
           </div>
         ) : (
-          <div className="tournaments-grid animate-fade-in">
-            <CreateCard />
-            {tournaments.map(t => <TournamentCard key={t.id} tournament={t} />)}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+            {tournaments.map(t => <TournamentCard key={t.id} t={t} />)}
           </div>
-        )}
-
-        {!loading && tournaments.length === 0 && (
-          <p className="home-empty-hint">No tournaments yet — create your first one above!</p>
         )}
       </main>
 
-      <style jsx>{`
-        .home-main { padding: 40px 0 80px; }
-        .home-header { margin-bottom: 40px; }
-        .home-title {
-          font-size: 2.25rem;
-          background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-        .home-subtitle { color: var(--text-muted); margin-top: 6px; font-size: 1rem; }
-        .tournaments-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 20px;
-        }
-        .home-empty-hint {
-          text-align: center;
-          color: var(--text-muted);
-          font-size: 0.9rem;
-          margin-top: -20px;
-        }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

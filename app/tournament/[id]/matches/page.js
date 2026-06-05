@@ -53,221 +53,159 @@ export default function MatchesListPage() {
       </div>
     );
   }
+  const navBtn = (active) => ({
+    display: 'inline-flex', alignItems: 'center', gap: '6px',
+    padding: '8px 16px', borderRadius: '10px',
+    background: active ? 'linear-gradient(135deg, #4f7af8, #7c5cfc)' : 'rgba(255,255,255,0.05)',
+    color: active ? 'white' : '#94a3b8',
+    border: active ? 'none' : '1px solid rgba(255,255,255,0.08)',
+    textDecoration: 'none', fontWeight: 600, fontSize: '0.875rem',
+    boxShadow: active ? '0 4px 12px rgba(79,122,248,0.35)' : 'none',
+  });
 
-  // Format team score
-  const getTeamScoreText = (match, teamId) => {
-    if (match.status === 'scheduled') return '-';
+  const getScore = (match, teamId) => {
+    if (match.status === 'scheduled') return null;
     const inn = match.innings?.find(i => i.batting_team_id === teamId && !i.is_super_over);
-    if (!inn) return 'DNB';
-    return `${inn.total_runs}/${inn.total_wickets}`;
-  };
-
-  const getTeamOversText = (match, teamId) => {
-    if (match.status === 'scheduled') return '';
-    const inn = match.innings?.find(i => i.batting_team_id === teamId && !i.is_super_over);
-    if (!inn) return '';
-    return `(${inn.overs_completed} ov)`;
+    if (!inn) return null;
+    return { runs: inn.total_runs, wickets: inn.total_wickets, overs: inn.overs_completed };
   };
 
   return (
-    <div className="page-wrapper">
+    <div style={{ minHeight: '100vh', background: '#0c0f1e' }}>
       <Navbar />
 
-      <main className="container" style={{ padding: '32px 16px', position: 'relative', zIndex: 1, maxWidth: '800px' }}>
-        <header style={{ marginBottom: '32px' }}>
-          <Link href={`/tournament/${id}`} style={{ textDecoration: 'none', color: 'var(--accent-primary)', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            ← Back to Points Table
+      <main style={{ maxWidth: '760px', margin: '0 auto', padding: '36px 20px' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '28px' }}>
+          <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: '1.9rem', color: '#eef2ff' }}>{tournament?.name}</h1>
+          <p style={{ color: '#4b5680', marginTop: '4px', fontSize: '0.85rem' }}>{matches.length} matches · Schedule</p>
+        </div>
+
+        {/* Sub-Navigation */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', overflowX: 'auto' }}>
+          <Link href={`/tournament/${id}`} style={navBtn(false)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M3 9h18M9 21V9" stroke="currentColor" strokeWidth="2"/></svg>
+            Points Table
           </Link>
-          <h1 style={{ fontSize: '2rem', marginTop: '12px' }}>Matches Schedule</h1>
-          <p className="text-secondary">{tournament.name}</p>
-        </header>
+          <Link href={`/tournament/${id}/matches`} style={navBtn(true)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2"/></svg>
+            Schedule
+          </Link>
+          <Link href={`/record?tournamentId=${id}`} style={navBtn(false)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3" fill="#ef4444" stroke="none"/></svg>
+            Record Match
+          </Link>
+        </div>
 
-        {/* Timeline Matches list */}
-        <div className="matches-timeline">
-          {matches.map((match) => {
-            const team1 = teams[match.team1_id];
-            const team2 = teams[match.team2_id];
-
-            return (
-              <div key={match.id} className="timeline-item" id={`match-card-${match.id}`}>
-                {/* Timeline connector visual line on left */}
-                <div className="timeline-marker">
-                  <div className={`timeline-circle ${match.status === 'completed' ? 'completed' : match.status === 'live' ? 'live' : ''}`} />
-                  <div className="timeline-line" />
-                </div>
-
-                <div className="timeline-content">
-                  <Link href={`/tournament/${id}/match/${match.id}`} className="match-card-wrapper" style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <div className="match-stage-info">
-                      <span className="badge badge-gray">{match.stage === 'league' ? `Match ${match.match_number}` : match.stage}</span>
-                      {match.status === 'live' && <span className="badge badge-red animate-pulse-glow">🔴 Live</span>}
-                      {match.status === 'completed' && <span className="badge badge-green">Completed</span>}
-                    </div>
-
-                    <div className="match-team-row">
-                      {/* Team 1 info */}
-                      <div className="team-display">
-                        <span className="team-emoji">{team1?.emoji || '❔'}</span>
-                        <span className="team-name" style={{ color: team1?.color }}>{team1?.name || 'TBD'}</span>
-                      </div>
-                      <div className="score-display">
-                        <span className="score-runs">{getTeamScoreText(match, match.team1_id)}</span>
-                        <span className="score-overs">{getTeamOversText(match, match.team1_id)}</span>
-                      </div>
-                    </div>
-
-                    <div className="vs-divider">vs</div>
-
-                    <div className="match-team-row">
-                      {/* Team 2 info */}
-                      <div className="team-display">
-                        <span className="team-emoji">{team2?.emoji || '❔'}</span>
-                        <span className="team-name" style={{ color: team2?.color }}>{team2?.name || 'TBD'}</span>
-                      </div>
-                      <div className="score-display">
-                        <span className="score-runs">{getTeamScoreText(match, match.team2_id)}</span>
-                        <span className="score-overs">{getTeamOversText(match, match.team2_id)}</span>
-                      </div>
-                    </div>
-
-                    {match.status === 'completed' && match.result_description && (
-                      <div className="match-result-banner">
-                        {match.result_description}
-                      </div>
-                    )}
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
-
+        {/* Matches List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {matches.length === 0 && (
-            <div className="empty-state">
-              <span className="empty-state-icon">📅</span>
-              <p className="empty-state-title">No matches scheduled yet.</p>
+            <div style={{ background: '#161b2e', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '16px', padding: '48px', textAlign: 'center' }}>
+              <p style={{ color: '#4b5680' }}>No matches scheduled yet.</p>
             </div>
           )}
+
+          {matches.map((match) => {
+            const t1 = teams[match.team1_id];
+            const t2 = teams[match.team2_id];
+            const s1 = getScore(match, match.team1_id);
+            const s2 = getScore(match, match.team2_id);
+            const isCompleted = match.status === 'completed';
+            const isLive = match.status === 'live';
+
+            return (
+              <Link key={match.id} href={`/record?tournamentId=${id}&matchId=${match.id}`}
+                style={{ textDecoration: 'none', display: 'block' }}
+                id={`match-card-${match.id}`}
+              >
+                <div style={{
+                  background: '#161b2e', border: `1px solid ${isLive ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.07)'}`,
+                  borderRadius: '14px', padding: '18px 20px',
+                  transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
+                }}
+                  onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(0,0,0,0.3)'; e.currentTarget.style.borderColor = 'rgba(79,122,248,0.25)'; }}
+                  onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = isLive ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.07)'; }}
+                >
+                  {/* Match Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#4b5680', fontWeight: 600 }}>
+                      {match.stage === 'league' ? `Match ${match.match_number}` : match.stage?.toUpperCase()} · {match.overs || '?'} OV
+                    </span>
+                    {isLive && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 10px', borderRadius: '100px', background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)', fontSize: '0.7rem', fontWeight: 700 }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 1.5s infinite' }} />
+                        LIVE
+                      </span>
+                    )}
+                    {isCompleted && (
+                      <span style={{ padding: '3px 10px', borderRadius: '100px', background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)', fontSize: '0.7rem', fontWeight: 700 }}>
+                        DONE
+                      </span>
+                    )}
+                    {!isCompleted && !isLive && (
+                      <span style={{ padding: '3px 10px', borderRadius: '100px', background: 'rgba(255,255,255,0.05)', color: '#4b5680', border: '1px solid rgba(255,255,255,0.08)', fontSize: '0.7rem', fontWeight: 700 }}>
+                        SCHEDULED
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Teams */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {/* Team 1 */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '1.2rem' }}>{t1?.emoji || '?'}</span>
+                        <span style={{ fontWeight: 600, color: t1?.color || '#eef2ff', fontSize: '0.95rem' }}>{t1?.name || 'TBD'}</span>
+                        {isCompleted && match.winner_id === match.team1_id && (
+                          <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(34,197,94,0.12)', color: '#22c55e', fontWeight: 700 }}>WON</span>
+                        )}
+                      </div>
+                      {s1 ? (
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#eef2ff' }}>{s1.runs}/{s1.wickets}</span>
+                          <span style={{ color: '#4b5680', fontSize: '0.75rem', marginLeft: '6px' }}>({s1.overs} ov)</span>
+                        </div>
+                      ) : <span style={{ color: '#4b5680', fontSize: '0.9rem' }}>—</span>}
+                    </div>
+
+                    <div style={{ height: '1px', background: 'rgba(255,255,255,0.04)' }} />
+
+                    {/* Team 2 */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '1.2rem' }}>{t2?.emoji || '?'}</span>
+                        <span style={{ fontWeight: 600, color: t2?.color || '#eef2ff', fontSize: '0.95rem' }}>{t2?.name || 'TBD'}</span>
+                        {isCompleted && match.winner_id === match.team2_id && (
+                          <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(34,197,94,0.12)', color: '#22c55e', fontWeight: 700 }}>WON</span>
+                        )}
+                      </div>
+                      {s2 ? (
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#eef2ff' }}>{s2.runs}/{s2.wickets}</span>
+                          <span style={{ color: '#4b5680', fontSize: '0.75rem', marginLeft: '6px' }}>({s2.overs} ov)</span>
+                        </div>
+                      ) : <span style={{ color: '#4b5680', fontSize: '0.9rem' }}>—</span>}
+                    </div>
+                  </div>
+
+                  {/* Result */}
+                  {isCompleted && match.result_description && (
+                    <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.04)', fontSize: '0.82rem', color: '#94a3b8' }}>
+                      {match.result_description}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </main>
 
-      <style jsx>{`
-        .matches-timeline {
-          display: flex;
-          flex-direction: column;
-          position: relative;
-          padding-left: 20px;
-        }
-        .timeline-item {
-          display: flex;
-          position: relative;
-          margin-bottom: 24px;
-        }
-        .timeline-marker {
-          position: absolute;
-          left: -20px;
-          top: 0;
-          bottom: 0;
-          width: 20px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        .timeline-circle {
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-          background: var(--bg-input);
-          border: 2px solid var(--border-subtle);
-          margin-top: 24px;
-          z-index: 2;
-        }
-        .timeline-circle.completed {
-          background: var(--accent-green);
-          border-color: var(--accent-green);
-        }
-        .timeline-circle.live {
-          background: var(--accent-red);
-          border-color: var(--accent-red);
-        }
-        .timeline-line {
-          width: 2px;
-          flex: 1;
-          background: var(--border-subtle);
-        }
-        .timeline-item:last-child .timeline-line {
-          display: none;
-        }
-        .timeline-content {
-          flex: 1;
-          padding-left: 24px;
-        }
-        .match-card-wrapper {
-          display: block;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-subtle);
-          border-radius: var(--radius-md);
-          padding: 20px;
-          transition: var(--transition);
-        }
-        .match-card-wrapper:hover {
-          border-color: var(--border-primary);
-          background: var(--bg-card-hover);
-        }
-        .match-stage-info {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 12px;
-        }
-        .match-team-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin: 6px 0;
-        }
-        .team-display {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .team-emoji {
-          font-size: 1.25rem;
-        }
-        .team-name {
-          font-weight: 600;
-        }
-        .score-display {
-          display: flex;
-          align-items: baseline;
-          gap: 6px;
-        }
-        .score-runs {
-          font-weight: 800;
-          font-size: 1.1rem;
-        }
-        .score-overs {
-          font-size: 0.75rem;
-          color: var(--text-muted);
-        }
-        .vs-divider {
-          text-align: center;
-          font-size: 0.75rem;
-          color: var(--text-muted);
-          font-weight: bold;
-          margin: 4px 0;
-          text-transform: uppercase;
-        }
-        .match-result-banner {
-          margin-top: 16px;
-          padding: 8px 12px;
-          background: rgba(61, 114, 245, 0.08);
-          border-left: 3px solid var(--accent-primary);
-          border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: var(--text-primary);
-        }
+      <style>{`
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );
 }
+
