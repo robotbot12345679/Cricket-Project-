@@ -14,10 +14,10 @@ export default function CreateTournamentPage() {
   const [name, setName] = useState('');
   const [numTeams, setNumTeams] = useState(4);
   const [teams, setTeams] = useState([
-    { name: 'Team A', emoji: '🏏', color: '#3d72f5' },
-    { name: 'Team B', emoji: '🔥', color: '#ef4444' },
-    { name: 'Team C', emoji: '⚡', color: '#22c55e' },
-    { name: 'Team D', emoji: '🦁', color: '#f59e0b' },
+    { name: 'Team A', shortName: 'TA', color: '#3d72f5' },
+    { name: 'Team B', shortName: 'TB', color: '#ef4444' },
+    { name: 'Team C', shortName: 'TC', color: '#22c55e' },
+    { name: 'Team D', shortName: 'TD', color: '#f59e0b' },
   ]);
   const [oversLeague, setOversLeague] = useState(5);
   const [wicketsLeague, setWicketsLeague] = useState(1); // Default 1 wicket per team, configurable
@@ -41,12 +41,12 @@ export default function CreateTournamentPage() {
     setNumTeams(n);
     const newTeams = [...teams];
     if (newTeams.length < n) {
-      const defaultEmojis = ['🏏', '🔥', '⚡', '🦁', '👑', '🦈', '🦅', '🐺', '🦊', '🐻'];
       const defaultColors = ['#3d72f5', '#ef4444', '#22c55e', '#f59e0b', '#6c4fff', '#06b6d4', '#ec4899', '#f97316', '#a855f7', '#64748b'];
       for (let i = newTeams.length; i < n; i++) {
+        const char = String.fromCharCode(65 + i);
         newTeams.push({
-          name: `Team ${String.fromCharCode(65 + i)}`,
-          emoji: defaultEmojis[i % defaultEmojis.length],
+          name: `Team ${char}`,
+          shortName: `T${char}`,
           color: defaultColors[i % defaultColors.length],
         });
       }
@@ -134,7 +134,7 @@ export default function CreateTournamentPage() {
         tournament_id: tournament.id,
         name: t.name,
         color: t.color,
-        emoji: t.emoji,
+        emoji: t.shortName,
       }));
 
       const { data: insertedTeams, error: teamsErr } = await supabase
@@ -276,10 +276,10 @@ export default function CreateTournamentPage() {
                     <input
                       type="text"
                       className="form-input"
-                      style={{ width: '40px', textAlign: 'center', padding: '10px 0' }}
-                      value={team.emoji}
-                      onChange={(e) => updateTeam(idx, 'emoji', e.target.value)}
-                      placeholder="icon"
+                      style={{ width: '50px', textAlign: 'center', padding: '10px 0' }}
+                      value={team.shortName}
+                      onChange={(e) => updateTeam(idx, 'shortName', e.target.value)}
+                      placeholder="Short"
                     />
                     <input
                       type="text"
@@ -495,7 +495,7 @@ export default function CreateTournamentPage() {
               <h2 className="font-bold">Review Tournament</h2>
               <div>
                 <p className="text-sm text-secondary">Name: <strong className="text-primary">{name}</strong></p>
-                <p className="text-sm text-secondary">Teams: <strong className="text-primary">{teams.map(t => `${t.emoji} ${t.name}`).join(', ')}</strong></p>
+                <p className="text-sm text-secondary">Teams: <strong className="text-primary">{teams.map(t => `${t.shortName} - ${t.name}`).join(', ')}</strong></p>
                 <p className="text-sm text-secondary">Overs (League): <strong className="text-primary">{oversLeague} overs</strong></p>
                 <p className="text-sm text-secondary">Wickets (League): <strong className="text-primary">{wicketsLeague} wickets</strong></p>
                 <p className="text-sm text-secondary">Points: <strong className="text-primary">Win: {pointsWin} | Loss: {pointsLoss} | NR: {pointsNr}</strong></p>
