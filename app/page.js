@@ -17,61 +17,149 @@ function TournamentCard({ tournament }) {
   const { label, cls } = statusLabel(tournament.status);
   return (
     <Link href={`/tournament/${tournament.id}`} className="t-card" id={`tournament-${tournament.id}`}>
-      <div className="t-card-top">
-        <span className={`badge ${cls}`}>{label}</span>
-      </div>
-      <div className="t-card-emoji">🏆</div>
-      <h3 className="t-card-name">{tournament.name}</h3>
-      <div className="t-card-meta">
-        <span>{tournament.team_count || 0} Teams</span>
-        <span className="t-card-dot">·</span>
-        <span>{tournament.overs_league} ov</span>
-      </div>
-      <div className="t-card-footer">
-        <span className="t-card-date">
-          {new Date(tournament.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-        </span>
-        <span className="t-card-arrow">→</span>
+      <div className="t-card-bg-gradient" />
+      <div className="t-card-content">
+        <div className="t-card-top">
+          <span className={`badge ${cls}`}>{label}</span>
+          <span className="t-card-date">
+            {new Date(tournament.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </span>
+        </div>
+        <div className="t-card-main">
+          <h3 className="t-card-name">{tournament.name}</h3>
+          <div className="t-card-details">
+            <div className="t-card-stat">
+              <span className="t-card-stat-value">{tournament.team_count || 0}</span>
+              <span className="t-card-stat-label">Teams</span>
+            </div>
+            <div className="t-card-stat-divider" />
+            <div className="t-card-stat">
+              <span className="t-card-stat-value">{tournament.overs_league}</span>
+              <span className="t-card-stat-label">Overs</span>
+            </div>
+          </div>
+        </div>
+        <div className="t-card-footer">
+          <span className="t-card-action">View Tournament</span>
+          <svg className="t-card-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </div>
       </div>
       <style jsx>{`
         .t-card {
+          position: relative;
           display: flex;
           flex-direction: column;
-          gap: 12px;
           background: var(--bg-card);
           border: 1px solid var(--border-subtle);
           border-radius: var(--radius-lg);
-          padding: 24px;
           text-decoration: none;
           color: inherit;
           transition: var(--transition);
           cursor: pointer;
-          position: relative;
           overflow: hidden;
+          min-height: 220px;
         }
-        .t-card::before {
-          content: '';
+        .t-card-bg-gradient {
           position: absolute;
           inset: 0;
-          background: var(--gradient-card);
+          background: linear-gradient(135deg, rgba(61,114,245,0.05) 0%, rgba(108,79,255,0.02) 100%);
           opacity: 0;
           transition: var(--transition);
         }
         .t-card:hover {
           border-color: var(--border-primary);
-          transform: translateY(-3px);
+          transform: translateY(-4px);
           box-shadow: var(--shadow-card), var(--shadow-glow);
         }
-        .t-card:hover::before { opacity: 1; }
-        .t-card-top { display: flex; justify-content: space-between; align-items: center; }
-        .t-card-emoji { font-size: 2.5rem; }
-        .t-card-name { font-size: 1.1rem; font-weight: 700; }
-        .t-card-meta { display: flex; gap: 8px; align-items: center; color: var(--text-muted); font-size: 0.85rem; }
-        .t-card-dot { opacity: 0.4; }
-        .t-card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
-        .t-card-date { font-size: 0.75rem; color: var(--text-muted); }
-        .t-card-arrow { color: var(--accent-primary); font-size: 1.1rem; transition: var(--transition); }
-        .t-card:hover .t-card-arrow { transform: translateX(4px); }
+        .t-card:hover .t-card-bg-gradient {
+          opacity: 1;
+        }
+        .t-card-content {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          padding: 24px;
+        }
+        .t-card-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+        .t-card-date {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          font-weight: 500;
+        }
+        .t-card-main {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          margin-bottom: 24px;
+        }
+        .t-card-name {
+          font-size: 1.25rem;
+          font-weight: 700;
+          margin-bottom: 16px;
+          line-height: 1.3;
+          color: var(--text-primary);
+        }
+        .t-card-details {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          background: var(--bg-secondary);
+          padding: 12px 16px;
+          border-radius: var(--radius-sm);
+        }
+        .t-card-stat {
+          display: flex;
+          flex-direction: column;
+        }
+        .t-card-stat-value {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          line-height: 1;
+          margin-bottom: 4px;
+        }
+        .t-card-stat-label {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          font-weight: 600;
+        }
+        .t-card-stat-divider {
+          width: 1px;
+          height: 24px;
+          background: var(--border-subtle);
+        }
+        .t-card-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-top: 1px solid var(--border-subtle);
+          padding-top: 16px;
+          margin-top: auto;
+        }
+        .t-card-action {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: var(--accent-primary);
+        }
+        .t-card-arrow {
+          color: var(--accent-primary);
+          transition: transform 0.3s ease;
+        }
+        .t-card:hover .t-card-arrow {
+          transform: translateX(4px);
+        }
       `}</style>
     </Link>
   );
@@ -80,48 +168,87 @@ function TournamentCard({ tournament }) {
 function CreateCard() {
   return (
     <Link href="/tournament/create" className="create-card" id="create-tournament-btn">
-      <div className="create-card-icon">+</div>
-      <span className="create-card-label">New Tournament</span>
+      <div className="create-card-content">
+        <div className="create-card-icon-wrapper">
+          <svg className="create-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </div>
+        <div className="create-card-text">
+          <h3 className="create-card-title">Add Tournament</h3>
+          <p className="create-card-subtitle">Create a new cricket tournament</p>
+        </div>
+      </div>
       <style jsx>{`
         .create-card {
           display: flex;
           flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 16px;
-          background: rgba(61,114,245,0.06);
-          border: 2px dashed rgba(61,114,245,0.3);
+          background: var(--gradient-primary);
           border-radius: var(--radius-lg);
-          padding: 40px 24px;
           text-decoration: none;
-          color: var(--accent-primary);
+          color: white;
           transition: var(--transition);
           cursor: pointer;
-          min-height: 200px;
-          animation: pulse-glow 3s ease-in-out infinite;
+          min-height: 220px;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 10px 30px rgba(61, 114, 245, 0.3);
+        }
+        .create-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+          pointer-events: none;
         }
         .create-card:hover {
-          background: rgba(61,114,245,0.12);
-          border-color: var(--accent-primary);
-          transform: translateY(-3px);
+          transform: translateY(-4px);
+          box-shadow: 0 15px 40px rgba(61, 114, 245, 0.4);
         }
-        .create-card-icon {
-          width: 56px;
-          height: 56px;
-          background: var(--gradient-primary);
-          border-radius: var(--radius-md);
+        .create-card-content {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          height: 100%;
+          padding: 32px;
+          text-align: center;
+          position: relative;
+          z-index: 1;
+        }
+        .create-card-icon-wrapper {
+          width: 64px;
+          height: 64px;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 2rem;
-          color: white;
-          font-weight: 300;
-          box-shadow: 0 8px 24px rgba(61,114,245,0.35);
+          margin-bottom: 20px;
+          backdrop-filter: blur(10px);
+          transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .create-card-label {
+        .create-card:hover .create-card-icon-wrapper {
+          transform: scale(1.1) rotate(90deg);
+        }
+        .create-card-icon {
+          width: 32px;
+          height: 32px;
+          color: white;
+        }
+        .create-card-title {
+          font-size: 1.25rem;
           font-weight: 700;
-          font-size: 1rem;
-          font-family: 'Space Grotesk', sans-serif;
+          margin-bottom: 8px;
+          letter-spacing: 0.02em;
+        }
+        .create-card-subtitle {
+          font-size: 0.875rem;
+          opacity: 0.8;
+          font-weight: 500;
         }
       `}</style>
     </Link>
